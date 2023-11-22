@@ -1,9 +1,10 @@
 import Koa from 'koa';
 import Router from 'koa-router';
 import bodyParser from 'koa-bodyparser';
-import mongoose from 'mongoose';
-import User, { IUser } from './models/user';
+import mongoose, {ObjectId} from 'mongoose';
+import User, {IUser} from './models/user';
 import Game, {IGame} from "./models/game";
+import {getUserId, setUserId} from "./helpers";
 
 const app = new Koa();
 const router = new Router();
@@ -32,54 +33,103 @@ router.get('/users', async (ctx) => {
 	ctx.body = await User.find(query).limit(10);
 });
 
+router.get('/users/:id', async (ctx) => {
+	const id = ctx.params.id;
+	const user = await User.findOne({
+		$or: [
+			{id: id},
+			{_id: id},
+		]
+	});
+
+	if (user == null) {
+		throw new Error('user not found');
+	}
+
+	await setUserId(ctx, user._id);
+
+	ctx.body = user;
+});
+
 router.post('/users', async (ctx) => {
 	const user: IUser = new User({
 		name: (<IUser>ctx.request.body).name,
 		rating: 1000
 	});
-	await user.save();
+	const savedUser = await user.save();
+	await setUserId(ctx, savedUser._id);
 	ctx.body = user;
 });
 
 router.put('/users/:id', async (ctx) => {
-	ctx.body = await User.findOneAndUpdate({id: ctx.params.id}, <IUser>ctx.request.body);
+	ctx.body = await User.findOneAndUpdate({
+		$or: [
+			{id: ctx.params.id},
+			{_id: ctx.params.id},
+		]
+	}, <IUser>ctx.request.body);
 });
 
 router.delete('/users/:id', async (ctx) => {
-	ctx.body = await User.findOneAndDelete({id: ctx.params.id});
+	ctx.body = await User.findOneAndDelete({
+		$or: [
+			{id: ctx.params.id},
+			{_id: ctx.params.id},
+		]
+	});
 });
 
 router.post('/games', async (ctx) => {
 	const members = await User.find({
-		$or: (<{ members: number[] }>ctx.request.body).members.map(id => ({id}))
-	})
+		$or: (<{ members: {id?: number, _id?: ObjectId }[] }>ctx.request.body).members
+	});
 	const game: IGame = new Game({
-		members: members.map(m => ({user: m}))
+		members: members.map(m => m)
 	});
 	await game.save();
 	ctx.body = game;
 });
 
+router.get('/games/pending', async (ctx) => {
+	const _id = getUserId(ctx);
+
+	ctx.body = await Game.find({
+		'members._id': _id,
+		members: {
+			$elemMatch: {
+				choice: {$exists: false}
+			}
+		}
+	});
+});
+
+router.get('/games/history', async (ctx) => {
+	const _id = getUserId(ctx);
+
+	ctx.body = await Game.find({
+		'members._id': _id,
+		members: {
+			$not: {
+				$elemMatch: {
+					choice: {$exists: false}
+				}
+			}
+		}
+	});
+});
+
 router.put('/games/:id', async (ctx) => {
 	const choice = (<{choice: number}>ctx.request.body).choice;
-	const id = "1"; // get cur user id
-	const game = await Game.findOne({id: ctx.params.id}).populate('members.user');
-
-	if (game == null) {
-		return;
-	}
-
-	const member = game.members.find(m => m.user.id === id);
-
-	if (member) {
-		// Update the member's choice
-		member.choice = choice;
-
-		// Save the game document with the updated members array
-		await game.save();
-	}
-
-	ctx.body = game;
+	const id = getUserId(ctx);
+	ctx.body = await Game
+		.findOneAndUpdate({
+			$or: [{id: ctx.params.id}],
+			'members._id': id
+		}, {
+			$set: {
+				'members.$.choice': choice
+			}
+		});
 });
 
 // Attach Routes
