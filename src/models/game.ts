@@ -3,14 +3,19 @@ import Counter from "./counter";
 import {IUser} from "./user";
 
 export interface IPlayer {
+	id: string
+	name: string;
+	rating: string;
 	choice?: number;
-	user: IUser;
 }
 
 export interface IGame extends Document {
-	id: number;
+	id: string;
 	members: IPlayer[];
-	winner?: IPlayer;
+	winner?: {
+		choice: number;
+		user: IUser;
+	};
 }
 
 const GameSchema: Schema = new Schema({
@@ -19,16 +24,31 @@ const GameSchema: Schema = new Schema({
 		unique: true,
 		index: true
 	},
-	members: [{choice: Number, user: {type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true}}],
-	winner: {choice: Number, user: {type: mongoose.Schema.Types.ObjectId, ref: 'User'}}
+	members: [{
+		id: String,
+		name: String,
+		rating: Number,
+		choice: Number,
+	}],
+	winner: {
+		choice: Number,
+		user: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: 'User'
+		}
+	}
 });
 
 GameSchema.pre('save',  async function (next) {
-	if (!this.isNew) {
+	if (!this.isNew || this.id != null) {
 		return next()
 	}
 
-	const res = await Counter.findByIdAndUpdate({_id: 'gameId'}, {$inc: { seq: 1} }, {new: true, upsert: true});
+	const res = await Counter.findByIdAndUpdate(
+		{_id: 'gameId'},
+		{$inc: { seq: 1}},
+		{new: true, upsert: true}
+	);
 
 	if (res == null) {
 		return next();

@@ -7,18 +7,35 @@ export interface IUser extends Document {
 	rating: number;
 }
 
-const UserSchema: Schema = new Schema({
+export const UserSchema: Schema = new Schema({
 	id: {
 		type: String,
 		unique: true,
 		index: true
 	},
-	name: { type: String, required: true, unique: true, lowercase: true, trim: true, minlength: 4, maxlength: 30 },
+	name: {
+		type: String,
+		required: true,
+		unique: true,
+		lowercase: true,
+		trim: true,
+		minlength: 4,
+		maxlength: 30
+	},
 	rating: { type: Number, required: true },
 });
 
 UserSchema.pre('save',  async function (next) {
-	const res = await Counter.findByIdAndUpdate({_id: 'userId'}, {$inc: { seq: 1} }, {new: true, upsert: true});
+	if (!this.isNew || this.id != null) {
+		return next()
+	}
+
+	const res = await Counter
+		.findByIdAndUpdate(
+			{_id: 'userId'},
+			{$inc: { seq: 1} },
+			{new: true, upsert: true}
+		);
 
 	if (res == null) {
 		return next();
