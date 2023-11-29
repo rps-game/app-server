@@ -1,8 +1,8 @@
 import type Koa from "koa";
-import User from "./models/user";
 
 export function getUserId(ctx: Koa.ParameterizedContext): string {
 	const userId = ctx.cookies.get('userId');
+
 	if (userId == null) {
 		throw new Error('userId not found');
 	}

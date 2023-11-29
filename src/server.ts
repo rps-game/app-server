@@ -5,6 +5,7 @@ import mongoose, {ObjectId} from 'mongoose';
 import User, {IUser} from './models/user';
 import Game, {IGame} from "./models/game";
 import {getUserId, setUserId} from "./helpers";
+import cors from '@koa/cors';
 
 const app = new Koa();
 const router = new Router();
@@ -15,11 +16,19 @@ mongoose.connection.on('error', console.error.bind(console, 'MongoDB connection 
 
 // Middlewares
 app.use(bodyParser());
+app.use(cors());
 
 // Routes
 router.get('/users', async (ctx) => {
 	const search = ctx.request.query.search
-	let query = {}
+
+	if (!search) {
+		ctx.status = 400;
+		ctx.body = { message: 'Empty query' }
+		return;
+	}
+
+	let query = {};
 
 	if (typeof search == 'string') {
 		query = {
@@ -35,59 +44,72 @@ router.get('/users', async (ctx) => {
 
 router.get('/users/:id', async (ctx) => {
 	const id = ctx.params.id;
-	const user = await User.findOne({
-		$or: [
-			{id: id},
-			{_id: id},
-		]
-	});
 
-	if (user == null) {
-		throw new Error('user not found');
+	let user;
+
+	try {
+		user = await User.findById(id);
+	} catch (e) {
+		user = await User.findOne({id: id});
 	}
 
-	await setUserId(ctx, user._id);
+	if (user == null) {
+		ctx.status = 404;
+		ctx.body = {message: 'User not found'}
+		return;
+	}
 
 	ctx.body = user;
 });
 
 router.post('/users', async (ctx) => {
-	const user: IUser = new User({
-		name: (<IUser>ctx.request.body).name,
-		rating: 1000
-	});
-	const savedUser = await user.save();
-	await setUserId(ctx, savedUser._id);
-	ctx.body = user;
+	try {
+		const user: IUser = new User({
+			name: (<IUser>ctx.request.body).name,
+			rating: 1000
+		});
+		await user.save();
+		ctx.status = 201;
+		ctx.body = user;
+	} catch (e) {
+		ctx.status = 400;
+		ctx.body = { message: 'User with that name already exists' }
+	}
 });
 
 router.put('/users/:id', async (ctx) => {
-	ctx.body = await User.findOneAndUpdate({
-		$or: [
-			{id: ctx.params.id},
-			{_id: ctx.params.id},
-		]
-	}, <IUser>ctx.request.body);
-});
+	try {
+		const id = ctx.params.id
+		let user;
 
-router.delete('/users/:id', async (ctx) => {
-	ctx.body = await User.findOneAndDelete({
-		$or: [
-			{id: ctx.params.id},
-			{_id: ctx.params.id},
-		]
-	});
+		try {
+			user = await User.findOneAndUpdate({_id: id}, <IUser>ctx.request.body);
+		} catch (e) {
+			user = await User.findOneAndUpdate({id}, <IUser>ctx.request.body);
+		}
+
+		ctx.body = user;
+	} catch (e) {
+		ctx.status = 400;
+		ctx.body = { message: 'Invalid request' }
+	}
 });
 
 router.post('/games', async (ctx) => {
-	const members = await User.find({
-		$or: (<{ members: {id?: number, _id?: ObjectId }[] }>ctx.request.body).members
-	});
-	const game: IGame = new Game({
-		members: members.map(m => m)
-	});
-	await game.save();
-	ctx.body = game;
+	try {
+		const members = await User.find({
+			$or: (<{ members: {id?: number, _id?: ObjectId }[] }>ctx.request.body).members
+		});
+		const game: IGame = new Game({
+			members: members.map(m => m)
+		});
+		await game.save();
+		ctx.status = 201;
+		ctx.body = game;
+	} catch (e) {
+		ctx.status = 400;
+		ctx.body = { message: 'Invalid request' }
+	}
 });
 
 router.get('/games/pending', async (ctx) => {
@@ -119,17 +141,22 @@ router.get('/games/history', async (ctx) => {
 });
 
 router.put('/games/:id', async (ctx) => {
-	const choice = (<{choice: number}>ctx.request.body).choice;
-	const id = getUserId(ctx);
-	ctx.body = await Game
-		.findOneAndUpdate({
-			$or: [{id: ctx.params.id}],
-			'members._id': id
-		}, {
-			$set: {
-				'members.$.choice': choice
-			}
-		});
+	try {
+		const choice = (<{choice: number}>ctx.request.body).choice;
+		const id = getUserId(ctx);
+		ctx.body = await Game
+			.findOneAndUpdate({
+				id: ctx.params.id,
+				'members._id': id
+			}, {
+				$set: {
+					'members.$.choice': choice
+				}
+			});
+	} catch (e) {
+		ctx.status = 400;
+		ctx.body = { message: 'Invalid request' }
+	}
 });
 
 // Attach Routes
