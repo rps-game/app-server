@@ -1,4 +1,5 @@
 import type Koa from "koa";
+import mongoose from "mongoose";
 
 export function getUserId(ctx: Koa.ParameterizedContext): string {
 	const userId = ctx.cookies.get('userId');
@@ -18,4 +19,29 @@ export async function setUserId(ctx: Koa.ParameterizedContext, id: string): Prom
 		httpOnly: true, // Recommended for security (not accessible via JavaScript)
 		secure: process.env.NODE_ENV === 'production', // Recommended to send the cookie over HTTPS only
 	});
+}
+
+export const conn = mongoose.createConnection('mongodb://localhost:27018', {dbName: 'sessionsDB'})
+
+export async function getChatId(tglogin: string): Promise<number> {
+	const user = await conn.collection('sessions').findOne({'data.username': tglogin});
+
+	if (user == null) {
+		throw {message: 'User not authorized in bot'}
+	}
+
+	return user.data.id;
+}
+
+export function generateCode(): number {
+	const a = [];
+	for (let i = 0; i < 5; i ++) {
+		a.push(~~(Math.random()*10));
+	}
+
+	if (a[0] === 0) {
+		a[0] = 1;
+	}
+
+	return Number(a.join(''));
 }

@@ -1,166 +1,38 @@
 import Koa from 'koa';
-import Router from 'koa-router';
 import bodyParser from 'koa-bodyparser';
-import mongoose, {ObjectId} from 'mongoose';
-import User, {IUser} from './models/user';
-import Game, {IGame} from "./models/game";
-import {getUserId, setUserId} from "./helpers";
+import mongoose from 'mongoose';
 import cors from '@koa/cors';
+import session from './core/session';
+import passport from './auth/passport';
+
+import gamesRouter from "./routes/games";
+import authRouter from "./routes/auth";
+import userRouter from "./routes/users";
 
 const app = new Koa();
-const router = new Router();
 
 // MongoDB connection
 void mongoose.connect('mongodb://localhost:27018', {dbName: 'rpsGame'});
 mongoose.connection.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
 // Middlewares
+app.keys = ['secret']
 app.use(bodyParser());
-app.use(cors());
+app.use(cors({
+	// origin: '*',
+	// credentials: true
+}));
+app.use(session(app));
+app.use(passport.initialize());
+app.use(passport.session());
 
-// Routes
-router.get('/users', async (ctx) => {
-	const search = ctx.request.query.search
+app.use((ctx, next) => {
+	return next()
+})
 
-	if (!search) {
-		ctx.status = 400;
-		ctx.body = { message: 'Empty query' }
-		return;
-	}
-
-	let query = {};
-
-	if (typeof search == 'string') {
-		query = {
-			$or: [
-				{id: {$regex: new RegExp(search, 'i')}},
-				{name: {$regex: new RegExp(search, 'i')}}
-			]
-		}
-	}
-
-	ctx.body = await User.find(query).limit(10);
-});
-
-router.get('/users/:id', async (ctx) => {
-	const id = ctx.params.id;
-
-	let user;
-
-	try {
-		user = await User.findById(id);
-	} catch (e) {
-		user = await User.findOne({id: id});
-	}
-
-	if (user == null) {
-		ctx.status = 404;
-		ctx.body = {message: 'User not found'}
-		return;
-	}
-
-	ctx.body = user;
-});
-
-router.post('/users', async (ctx) => {
-	try {
-		const user: IUser = new User({
-			name: (<IUser>ctx.request.body).name,
-			rating: 1000
-		});
-		await user.save();
-		ctx.status = 201;
-		ctx.body = user;
-	} catch (e) {
-		ctx.status = 400;
-		ctx.body = { message: 'User with that name already exists' }
-	}
-});
-
-router.put('/users/:id', async (ctx) => {
-	try {
-		const id = ctx.params.id
-		let user;
-
-		try {
-			user = await User.findOneAndUpdate({_id: id}, <IUser>ctx.request.body);
-		} catch (e) {
-			user = await User.findOneAndUpdate({id}, <IUser>ctx.request.body);
-		}
-
-		ctx.body = user;
-	} catch (e) {
-		ctx.status = 400;
-		ctx.body = { message: 'Invalid request' }
-	}
-});
-
-router.post('/games', async (ctx) => {
-	try {
-		const members = await User.find({
-			$or: (<{ members: {id?: number, _id?: ObjectId }[] }>ctx.request.body).members
-		});
-		const game: IGame = new Game({
-			members: members.map(m => m)
-		});
-		await game.save();
-		ctx.status = 201;
-		ctx.body = game;
-	} catch (e) {
-		ctx.status = 400;
-		ctx.body = { message: 'Invalid request' }
-	}
-});
-
-router.get('/games/pending', async (ctx) => {
-	const _id = getUserId(ctx);
-
-	ctx.body = await Game.find({
-		'members._id': _id,
-		members: {
-			$elemMatch: {
-				choice: {$exists: false}
-			}
-		}
-	});
-});
-
-router.get('/games/history', async (ctx) => {
-	const _id = getUserId(ctx);
-
-	ctx.body = await Game.find({
-		'members._id': _id,
-		members: {
-			$not: {
-				$elemMatch: {
-					choice: {$exists: false}
-				}
-			}
-		}
-	});
-});
-
-router.put('/games/:id', async (ctx) => {
-	try {
-		const choice = (<{choice: number}>ctx.request.body).choice;
-		const id = getUserId(ctx);
-		ctx.body = await Game
-			.findOneAndUpdate({
-				id: ctx.params.id,
-				'members._id': id
-			}, {
-				$set: {
-					'members.$.choice': choice
-				}
-			});
-	} catch (e) {
-		ctx.status = 400;
-		ctx.body = { message: 'Invalid request' }
-	}
-});
-
-// Attach Routes
-app.use(router.routes()).use(router.allowedMethods());
+app.use(authRouter.routes()).use(authRouter.allowedMethods());
+app.use(userRouter.routes()).use(userRouter.allowedMethods());
+app.use(gamesRouter.routes()).use(gamesRouter.allowedMethods());
 
 // Start server
 app.listen(3000, () => {

@@ -4,7 +4,10 @@ import Counter from "./counter";
 export interface IUser extends Document {
 	id: string;
 	name: string;
+	tglogin: string;
 	rating: number;
+	passcode?: number;
+	chatId?: number;
 }
 
 export const UserSchema: Schema = new Schema({
@@ -12,6 +15,21 @@ export const UserSchema: Schema = new Schema({
 		type: String,
 		unique: true,
 		index: true
+	},
+	tglogin: {
+		type: String,
+		required: true,
+		unique: true,
+		trim: true,
+	},
+	chatId: {
+		type: Number,
+		unique: true
+	},
+	passcode: {
+		type: Number,
+		min: 10000,
+		max: 99999,
 	},
 	name: {
 		type: String,
@@ -45,5 +63,12 @@ UserSchema.pre('save',  async function (next) {
 
 	return next()
 });
+
+UserSchema.methods.toJSON = function() {
+	const obj = this.toObject();
+	delete obj.passcode;
+	delete obj.chatId;
+	return obj;
+}
 
 export default mongoose.model<IUser>('User', UserSchema);

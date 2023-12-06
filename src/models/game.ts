@@ -1,20 +1,21 @@
 import mongoose, {Schema, Document} from 'mongoose';
 import Counter from "./counter";
-import {IUser} from "./user";
+import {Results} from "../rps-game/helpers";
 
 export interface IPlayer {
 	id: string
 	name: string;
-	rating: string;
+	isWinner?: boolean;
+	delta?: number;
 	choice?: number;
 }
 
 export interface IGame extends Document {
 	id: string;
 	members: IPlayer[];
-	winner?: {
-		choice: number;
-		user: IUser;
+	result?: {
+		value: Results,
+		choice: number | number[]
 	};
 }
 
