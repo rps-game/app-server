@@ -4,6 +4,7 @@ import Game, {IGame, IPlayer} from "../models/game";
 import Router from 'koa-router';
 import {createRPSLSGame, Player} from "../rps-game/game";
 import {ratingSystem, Results} from "../rps-game/helpers";
+import config from "../config";
 
 const gamesRouter = new Router({
 	prefix: '/api/v1'
@@ -18,26 +19,28 @@ gamesRouter.post('/games', async (ctx) => {
 
 		const query = (<{ members: {id?: number, _id?: ObjectId }[] }>ctx.request.body).members
 
-		const gameExist = await Game.findOne({
-			$and: query.map(el => ({'members.id': el.id})),
-			$or: [
-				{
-					result: {$exists: false},
-				},
-				{
-					'result.value': Results.WIN,
-				},
-			]
-		});
+		if (config.REQUIRE_UNIQUE_GAMES) {
+			const gameExist = await Game.findOne({
+				$and: query.map(el => ({'members.id': el.id})),
+				$or: [
+					{
+						result: {$exists: false},
+					},
+					{
+						'result.value': Results.WIN,
+					},
+				]
+			});
 
-		if (gameExist != null) {
-			if (!(<{raise?: boolean}>ctx.request.body).raise) {
-				ctx.body = gameExist;
-				return;
+			if (gameExist != null) {
+				if (!(<{raise?: boolean}>ctx.request.body).raise) {
+					ctx.body = gameExist;
+					return;
+				}
+
+				ctx.status = 403;
+				throw {message: 'Добавьте новых участников или замените старых'}
 			}
-
-			ctx.status = 403;
-			throw {message: 'Добавьте новых участников или замените старых'}
 		}
 
 		const members = await User.find({

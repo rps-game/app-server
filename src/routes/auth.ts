@@ -30,9 +30,8 @@ authRouter.post('/login', async (ctx) => {
 			tglogin: requestBody.tglogin,
 		});
 
-		const chatId = await getChatId(requestBody.tglogin);
-
 		if (user == null) {
+			const chatId = await getChatId(requestBody.tglogin);
 			user = new User({
 				name: requestBody.name,
 				tglogin: requestBody.tglogin,
@@ -46,7 +45,7 @@ authRouter.post('/login', async (ctx) => {
 		const code = generateCode();
 		user.passcode = code;
 		await user.save();
-		void axios.post(`https://api.telegram.org/bot${config.BOT_TOKEN}/sendMessage`, {chat_id: chatId, text: code})
+		void axios.post(`https://api.telegram.org/bot${config.BOT_TOKEN}/sendMessage`, {chat_id: user.chatId, text: code})
 	} catch (e: any) {
 		console.error(e);
 		ctx.body = e;
