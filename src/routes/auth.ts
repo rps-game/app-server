@@ -2,11 +2,11 @@ import User, {IUser} from "../models/user";
 import {generateCode, getChatId} from "../helpers";
 import axios from "axios";
 import Router from 'koa-router';
+import config from "../config";
 
 const authRouter = new Router({
 	prefix: '/api/v1'
 });
-const BOT_TOKEN = '6952063224:AAFleE9vVpXEoCCjChQQ_EozpyhPkkOGxGU';
 
 authRouter.get('/logout', async (ctx) => {
 	await ctx.logout();
@@ -45,8 +45,7 @@ authRouter.post('/login', async (ctx) => {
 		const code = generateCode();
 		user.passcode = code;
 		await user.save();
-		void axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {chat_id: chatId, text: code})
-		console.log(code)
+		void axios.post(`https://api.telegram.org/bot${config.BOT_TOKEN}/sendMessage`, {chat_id: chatId, text: code})
 	} catch (e: any) {
 		console.error(e);
 		ctx.body = e;
