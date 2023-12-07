@@ -7,7 +7,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 const
 	BOT_TOKEN = String(process.env.BOT_TOKEN),
-	SECRET_KEY = String(process.env.MONGO_URI);
+	SECRET_KEY = String(process.env.SECRET_KEY);
 
 function getKeyFromFile(key: string): string {
 	if (key.startsWith('/')) {
