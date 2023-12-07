@@ -43,6 +43,7 @@ services:
       BOT_TOKEN: /run/secrets/bot_token
       SECRET_KEY: /run/secrets/secret_key
       MONGO_URI: mongodb://mongo:27017/
+      REQUIRE_UNIQUE_GAMES: true
     secrets:
       - bot_token
       - secret_key
