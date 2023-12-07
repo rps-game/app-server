@@ -130,3 +130,5 @@ dist
 .pnp.*
 
 .idea
+.bot_token.txt
+.secret_key.txt

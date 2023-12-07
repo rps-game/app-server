@@ -30,18 +30,19 @@ authRouter.post('/login', async (ctx) => {
 			tglogin: requestBody.tglogin,
 		});
 
+		const chatId = await getChatId(requestBody.tglogin);
+
 		if (user == null) {
 			user = new User({
 				name: requestBody.name,
 				tglogin: requestBody.tglogin,
-				rating: 1000
+				rating: 1000,
+				chatId
 			});
-			await user.save();
 			ctx.status = 201;
 		}
 
 		ctx.body = user;
-		const chatId = await getChatId(requestBody.tglogin);
 		const code = generateCode();
 		user.passcode = code;
 		await user.save();

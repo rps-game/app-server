@@ -6,8 +6,8 @@ export interface IUser extends Document {
 	name: string;
 	tglogin: string;
 	rating: number;
+	chatId: number;
 	passcode?: number;
-	chatId?: number;
 }
 
 export const UserSchema: Schema = new Schema({
@@ -24,6 +24,7 @@ export const UserSchema: Schema = new Schema({
 		trim: true,
 	},
 	chatId: {
+		required: true,
 		type: Number,
 		unique: true
 	},
