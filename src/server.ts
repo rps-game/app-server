@@ -8,20 +8,18 @@ import passport from './auth/passport';
 import gamesRouter from "./routes/games";
 import authRouter from "./routes/auth";
 import userRouter from "./routes/users";
+import config from "./config";
 
 const app = new Koa();
 
 // MongoDB connection
-void mongoose.connect('mongodb://localhost:27018', {dbName: 'rpsGame'});
+void mongoose.connect(config.MONGO_URI, {dbName: 'rpsGame'});
 mongoose.connection.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
 // Middlewares
-app.keys = ['secret']
+app.keys = [config.SECRET_KEY]
 app.use(bodyParser());
-app.use(cors({
-	// origin: '*',
-	// credentials: true
-}));
+app.use(cors());
 app.use(session(app));
 app.use(passport.initialize());
 app.use(passport.session());
