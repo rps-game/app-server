@@ -33,7 +33,7 @@ gamesRouter.post('/games', async (ctx) => {
 			});
 
 			if (gameExist != null) {
-				if (!(<{raise?: boolean}>ctx.request.body).raise) {
+				if ((<{notRaise?: boolean}>ctx.request.body).notRaise) {
 					ctx.body = gameExist;
 					return;
 				}
