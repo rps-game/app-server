@@ -1,15 +1,14 @@
 import session from "koa-session";
 import MongooseStore from './sessionStore';
 import mongoose from "mongoose";
+import config from "../config";
 
 export default (app: any) => session({
-	key: 'sid',
+	key: config.SECRET_KEY,
 	maxAge: 86400000,
 	overwrite: true,
 	httpOnly: true,
 	signed: true,
 	rolling: false,
-	// sameSite: 'none',
-	// secure: true,
 	store: MongooseStore.create({connection: mongoose.connection})
 }, app)
