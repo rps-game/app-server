@@ -19,7 +19,6 @@ services:
   telegram-bot:
     << : *service-defaults
     image: 4kit0/auth-bot:latest
-    build: .
     depends_on:
       - mongo-db
     container_name: auth-bot
@@ -32,7 +31,6 @@ services:
   app-server:
     <<: *service-defaults
     image: 4kit0/app-sever:latest
-    build: .
     depends_on:
       - telegram-bot
       - mongo-db
