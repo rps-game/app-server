@@ -31,7 +31,7 @@ services:
         - bot_token
   app-server:
     <<: *service-defaults
-    image: app-server
+    image: 4kit0/app-sever:latest
     build: .
     depends_on:
       - telegram-bot

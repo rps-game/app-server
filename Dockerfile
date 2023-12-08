@@ -6,7 +6,7 @@ COPY . /app
 
 # Install project dependencies
 RUN yarn install --frozen-lockfile && \
-    yarn build
+		yarn build
 
 FROM node:18-alpine AS runtime
 
@@ -33,4 +33,4 @@ RUN chown -R node:"$(id -u node)" /app
 
 USER node
 
-CMD ["npm", "run", "start-docker"]
+CMD ["yarn", "start-docker"]
