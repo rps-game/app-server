@@ -30,7 +30,7 @@ services:
         - bot_token
   app-server:
     <<: *service-defaults
-    image: 4kit0/app-sever:latest
+    image: 4kit0/app-server:latest
     depends_on:
       - telegram-bot
       - mongo-db
