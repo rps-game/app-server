@@ -22,7 +22,7 @@ gamesRouter.post('/games', async (ctx) => {
 		query.push({id: ctx.state.user.id});
 
 		const gameExist = await Game.findOne({
-			$and: query.map(el => ({'members.id': el.id})),
+			'members.id': {$all: query.map(el => el.id)},
 			members: {$size: query.length},
 			result: {$exists: false},
 		});
