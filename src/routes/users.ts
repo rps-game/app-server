@@ -16,8 +16,8 @@ userRouter.get('/users', async (ctx) => {
 		const search = ctx.request.query.search;
 
 		if (!search) {
-			ctx.status = 400;
-			throw { message: 'Empty query' }
+			ctx.body = await User.find({id: {$ne: ctx.state.user.id}}).sort({rating: -1}).limit(10);
+			return;
 		}
 
 		let query = {};

@@ -34,7 +34,7 @@ authRouter.post('/login', async (ctx) => {
 			const chatId = await getChatId(requestBody.tglogin);
 			user = new User({
 				name: requestBody.name,
-				tglogin: requestBody.tglogin,
+				tglogin: requestBody.tglogin.toLowerCase(),
 				rating: 1000,
 				chatId
 			});
