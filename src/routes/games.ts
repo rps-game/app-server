@@ -23,6 +23,7 @@ gamesRouter.post('/games', async (ctx) => {
 
 		const gameExist = await Game.findOne({
 			$and: query.map(el => ({'members.id': el.id})),
+			members: {$size: query.length},
 			result: {$exists: false},
 		});
 
@@ -34,6 +35,7 @@ gamesRouter.post('/games', async (ctx) => {
 		if (config.REQUIRE_UNIQUE_GAMES) {
 			const gameExist = await Game.findOne({
 				$and: query.map(el => ({'members.id': el.id})),
+				members: {$size: query.length},
 				'result.value': Results.WIN,
 			});
 

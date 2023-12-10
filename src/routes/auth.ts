@@ -41,11 +41,11 @@ authRouter.post('/login', async (ctx) => {
 			ctx.status = 201;
 		}
 
-		ctx.body = user;
 		const code = generateCode();
 		user.passcode = code;
 		await user.save();
 		void axios.post(`https://api.telegram.org/bot${config.BOT_TOKEN}/sendMessage`, {chat_id: user.chatId, text: code})
+		ctx.body = user;
 	} catch (e: any) {
 		console.error(e);
 		ctx.body = e;
