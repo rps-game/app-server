@@ -90,6 +90,7 @@ gamesRouter.get('/games/pending', async (ctx) => {
 			}
 		});
 	} catch (e) {
+		console.error(e);
 		ctx.body = e
 	}
 });
