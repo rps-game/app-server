@@ -19,27 +19,27 @@ gamesRouter.post('/games', async (ctx) => {
 
 		const query = (<{ members: {id?: number, _id?: ObjectId }[] }>ctx.request.body).members
 
+		query.push({id: ctx.state.user.id});
+
+		const gameExist = await Game.findOne({
+			$and: query.map(el => ({'members.id': el.id})),
+			result: {$exists: false},
+		});
+
+		if (gameExist != null) {
+			ctx.body = gameExist;
+			return;
+		}
+
 		if (config.REQUIRE_UNIQUE_GAMES) {
 			const gameExist = await Game.findOne({
 				$and: query.map(el => ({'members.id': el.id})),
-				$or: [
-					{
-						result: {$exists: false},
-					},
-					{
-						'result.value': Results.WIN,
-					},
-				]
+				'result.value': Results.WIN,
 			});
 
 			if (gameExist != null) {
-				if ((<{notRaise?: boolean}>ctx.request.body).notRaise) {
-					ctx.body = gameExist;
-					return;
-				}
-
 				ctx.status = 403;
-				throw {message: 'Добавьте новых участников или замените старых'}
+				throw {message: 'Добавьте новых участников или замените старых'};
 			}
 		}
 
@@ -51,10 +51,7 @@ gamesRouter.post('/games', async (ctx) => {
 			members: [...members.map(({id, name}) => ({
 				id,
 				name,
-			})), {
-				id: ctx.state.user.id,
-				name: ctx.state.user.name,
-			}].reduce<IPlayer[]>((p, e) => {
+			}))].reduce<IPlayer[]>((p, e) => {
 				if (p.find(el => el.id === e.id)) {
 					return p;
 				}

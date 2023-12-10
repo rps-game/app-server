@@ -27,7 +27,7 @@ authRouter.post('/login', async (ctx) => {
 
 		let user = await User.findOne({
 			name: requestBody.name,
-			tglogin: requestBody.tglogin,
+			tglogin: requestBody.tglogin.toLowerCase(),
 		});
 
 		if (user == null) {
