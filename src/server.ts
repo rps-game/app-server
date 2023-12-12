@@ -13,7 +13,8 @@ import config from "./config";
 const app = new Koa();
 
 // MongoDB connection
-void mongoose.connect(config.MONGO_URI, {dbName: 'rpsGame'});
+const connectionString = `mongodb://${config.MONGO_USERNAME}:${config.MONGO_PASSWORD}@${config.MONGO_HOST}:${config.MONGO_PORT}?authSource=admin`;
+void mongoose.connect(connectionString, {dbName: 'rpsGame'});
 mongoose.connection.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
 // Middlewares

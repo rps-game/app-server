@@ -12,45 +12,49 @@ services:
     << : *service-defaults
     image: mongo
     container_name: mongo
+    env_file: .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: $MONGO_USERNAME
+      MONGO_INITDB_ROOT_PASSWORD: $MONGO_PASSWORD
     volumes:
       - db_data:/var/lib/mongo
     ports:
       - "27018:27017"
-  telegram-bot:
+
+  auth-bot:
     << : *service-defaults
     image: 4kit0/auth-bot:latest
     depends_on:
       - mongo-db
     container_name: auth-bot
+    env_file: .env
     environment:
-      BOT_TOKEN: /run/secrets/bot_token
-      ADMIN: 532562899
-      MONGO_URI: mongodb://mongo:27017/
-    secrets:
-        - bot_token
+      BOT_TOKEN: $BOT_TOKEN
+      ADMIN: $ADMIN
+      MONGO_USERNAME: $MONGO_USERNAME
+      MONGO_PASSWORD: $MONGO_PASSWORD
+      MONGO_HOST: $MONGO_HOST
+      MONGO_PORT: $MONGO_PORT
+
   app-server:
     <<: *service-defaults
     image: 4kit0/app-server:latest
     depends_on:
-      - telegram-bot
+      - auth-bot
       - mongo-db
     container_name: app-server
     ports:
       - "3000:3000"
+    env_file: .env
     environment:
-      BOT_TOKEN: /run/secrets/bot_token
-      SECRET_KEY: /run/secrets/secret_key
-      MONGO_URI: mongodb://mongo:27017/
-      REQUIRE_UNIQUE_GAMES: true
-    secrets:
-      - bot_token
-      - secret_key
-
-secrets:
-  bot_token:
-    file: .bot_token.txt
-  secret_key:
-    file: .secret_key.txt
+      BOT_TOKEN: $BOT_TOKEN
+      ADMIN: $ADMIN
+      MONGO_USERNAME: $MONGO_USERNAME
+      MONGO_PASSWORD: $MONGO_PASSWORD
+      MONGO_HOST: $MONGO_HOST
+      MONGO_PORT: $MONGO_PORT
+      SECRET_KEY: $SECRET_KEY
+      REQUIRE_UNIQUE_GAMES: $REQUIRE_UNIQUE_GAMES
 
 volumes:
   db_data:
