@@ -28,7 +28,7 @@ const config = {
 	MONGO_HOST: String(process.env.MONGO_HOST),
 	MONGO_PORT: String(process.env.MONGO_PORT),
 	SECRET_KEY: getKeyFromFile(SECRET_KEY),
-	REQUIRE_UNIQUE_GAMES: Boolean(process.env.REQUIRE_UNIQUE_GAMES)
+	REQUIRE_UNIQUE_GAMES: JSON.parse(process.env.REQUIRE_UNIQUE_GAMES ?? 'false'),
 };
 
 export default config;

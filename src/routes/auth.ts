@@ -1,8 +1,7 @@
 import User, {IUser} from "../models/user";
-import {generateCode, getChatId} from "../helpers";
-import axios from "axios";
+import { getChatId} from "../helpers";
 import Router from 'koa-router';
-import config from "../config";
+import {sendCode} from "./helpers";
 
 const authRouter = new Router({
 	prefix: '/api/v1'
@@ -13,38 +12,58 @@ authRouter.get('/logout', async (ctx) => {
 	ctx.status = 204;
 });
 
-authRouter.post('/login', async (ctx) => {
+authRouter.post('/sign-up', async (ctx) => {
 	try {
 		const requestBody = <IUser>ctx.request.body;
 
 		if (requestBody.name == null) {
 			ctx.status = 400;
-			throw { message: 'Name is required' };
+			throw {message: 'Name is required'};
 		} else if (requestBody.tglogin == null) {
+			ctx.status = 400;
+			throw {message: 'Tglogin is required'};
+		}
+
+		const chatId = await getChatId(requestBody.tglogin, ctx);
+		const user = new User({
+			name: requestBody.name,
+			tglogin: requestBody.tglogin.toLowerCase(),
+			rating: 1000,
+			chatId,
+		});
+
+		sendCode(user);
+		await user.save();
+
+		ctx.body = user;
+		ctx.status = 201;
+	} catch (e) {
+		console.error(e);
+		ctx.body = e;
+	}
+});
+
+authRouter.post('/login', async (ctx) => {
+	try {
+		const requestBody = <IUser>ctx.request.body;
+
+		if (requestBody.tglogin == null) {
 			ctx.status = 400;
 			throw { message: 'Tglogin is required' };
 		}
 
-		let user = await User.findOne({
-			name: requestBody.name,
+		const user = await User.findOne({
 			tglogin: requestBody.tglogin.toLowerCase(),
 		});
 
 		if (user == null) {
-			const chatId = await getChatId(requestBody.tglogin);
-			user = new User({
-				name: requestBody.name,
-				tglogin: requestBody.tglogin.toLowerCase(),
-				rating: 1000,
-				chatId
-			});
-			ctx.status = 201;
+			ctx.status = 404;
+			throw {message: 'User not find'};
 		}
 
-		const code = generateCode();
-		user.passcode = code;
+		sendCode(user);
 		await user.save();
-		void axios.post(`https://api.telegram.org/bot${config.BOT_TOKEN}/sendMessage`, {chat_id: user.chatId, text: code})
+
 		ctx.body = user;
 	} catch (e: any) {
 		console.error(e);
@@ -56,10 +75,7 @@ authRouter.post('/code', async (ctx) => {
 	try {
 		const requestBody = <IUser>ctx.request.body;
 
-		if (requestBody.name == null) {
-			ctx.status = 400;
-			throw { message: 'Name is required' };
-		} else if (requestBody.tglogin == null) {
+		if (requestBody.tglogin == null) {
 			ctx.status = 400;
 			throw { message: 'Tglogin is required' };
 		} else if (requestBody.passcode == null || requestBody.passcode === 0) {
@@ -68,7 +84,6 @@ authRouter.post('/code', async (ctx) => {
 		}
 
 		const user = await User.findOne({
-			name: requestBody.name,
 			tglogin: requestBody.tglogin,
 		});
 

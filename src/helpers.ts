@@ -2,10 +2,11 @@ import mongoose from "mongoose";
 
 export const conn = mongoose.connection.useDb('sessionsDB')
 
-export async function getChatId(tglogin: string): Promise<number> {
+export async function getChatId(tglogin: string, ctx: any): Promise<number> {
 	const user = await conn.collection('sessions').findOne({'data.username': tglogin});
 
 	if (user == null) {
+		ctx.status = 400;
 		throw {message: 'User not authorized in bot'}
 	}
 
