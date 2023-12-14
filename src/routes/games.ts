@@ -113,7 +113,7 @@ gamesRouter.get('/games/history', async (ctx) => {
 					}
 				}
 			}
-		});
+		}).sort({$natural: -1}).limit(5);
 	} catch (e) {
 		ctx.body = e
 	}
