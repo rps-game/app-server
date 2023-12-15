@@ -14,31 +14,36 @@ authRouter.get('/logout', async (ctx) => {
 
 authRouter.post('/sign-up', async (ctx) => {
 	try {
-		const requestBody = <IUser>ctx.request.body;
+		const
+			requestBody = <IUser>ctx.request.body,
+			tglogin = requestBody.tglogin?.toLowerCase();
 
 		if (requestBody.name == null) {
 			ctx.status = 400;
 			throw {message: 'Name is required'};
-		} else if (requestBody.tglogin == null) {
+		} else if (tglogin == null) {
 			ctx.status = 400;
 			throw {message: 'Tglogin is required'};
 		}
 
-		const chatId = await getChatId(requestBody.tglogin, ctx);
+		const chatId = await getChatId(tglogin, ctx);
 		const user = new User({
 			name: requestBody.name,
-			tglogin: requestBody.tglogin.toLowerCase(),
+			tglogin,
 			rating: 1000,
 			chatId,
 		});
 
-		sendCode(user);
 		await user.save();
+		sendCode(user);
 
 		ctx.body = user;
 		ctx.status = 201;
 	} catch (e) {
-		console.error(e);
+		if (ctx.status != 400) {
+			ctx.status = 500;
+		}
+
 		ctx.body = e;
 	}
 });
