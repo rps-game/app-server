@@ -5,18 +5,14 @@ import Router from 'koa-router';
 import {createRPSLSGame, Player} from "../rps-game/game";
 import {ratingSystem, Results} from "../rps-game/helpers";
 import config from "../config";
+import passport, {requireAuth} from "../auth/passport";
 
 const gamesRouter = new Router({
 	prefix: '/api/v1'
 });
 
-gamesRouter.post('/games', async (ctx) => {
+gamesRouter.post('/games', requireAuth, async (ctx) => {
 	try {
-		if (ctx.isUnauthenticated()) {
-			ctx.status = 401;
-			throw {message: 'Not authorized'};
-		}
-
 		const query = (<{ members: {id?: number, _id?: ObjectId }[] }>ctx.request.body).members
 
 		query.push({id: ctx.state.user.id});
@@ -72,13 +68,8 @@ gamesRouter.post('/games', async (ctx) => {
 	}
 });
 
-gamesRouter.get('/games/pending', async (ctx) => {
+gamesRouter.get('/games/pending', requireAuth, async (ctx) => {
 	try {
-		if (ctx.isUnauthenticated()) {
-			ctx.status = 401;
-			throw {message: 'Not authorized'};
-		}
-
 		const id = ctx.state.user.id;
 
 		ctx.body = await Game.find({
@@ -95,13 +86,8 @@ gamesRouter.get('/games/pending', async (ctx) => {
 	}
 });
 
-gamesRouter.get('/games/history', async (ctx) => {
+gamesRouter.get('/games/history', requireAuth, async (ctx) => {
 	try {
-		if (ctx.isUnauthenticated()) {
-			ctx.status = 401;
-			throw {message: 'Not authorized'};
-		}
-
 		const id = ctx.state.user.id;
 
 		ctx.body = await Game.find({
@@ -119,7 +105,7 @@ gamesRouter.get('/games/history', async (ctx) => {
 	}
 });
 
-gamesRouter.get('/games/:id', async (ctx) => {
+gamesRouter.get('/games/:id', requireAuth, async (ctx) => {
 	try {
 		if (ctx.isUnauthenticated()) {
 			ctx.status = 401;
@@ -134,13 +120,8 @@ gamesRouter.get('/games/:id', async (ctx) => {
 	}
 });
 
-gamesRouter.put('/games/:id', async (ctx) => {
+gamesRouter.put('/games/:id', requireAuth, async (ctx) => {
 	try {
-		if (ctx.isUnauthenticated()) {
-			ctx.status = 401;
-			throw {message: 'Not authorized'};
-		}
-
 		const id = ctx.state.user.id;
 		const choice = (<{choice: number}>ctx.request.body).choice;
 		const game = await Game

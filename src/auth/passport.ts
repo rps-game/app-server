@@ -16,17 +16,33 @@ passport.deserializeUser(async (id: string, done: any) => {
 	}
 });
 
-passport.use(new LocalStrategy(
-	async (username, password, done) => {
+passport.use(new LocalStrategy({ usernameField: 'tglogin', passwordField: 'passcode' },
+	async (tglogin, passcode, done) => {
 		try {
-			const user = await User.findOne({ name: username });
-			if (!user) { return done(null, false); }
-			if (String(user.passcode) !== password) { return done(null, false); }
+			const user = await User.findOne({ tglogin });
+
+			if (!user) {
+				return done(null, false, { message: 'User not find' });
+			}
+
+			if (String(user.passcode) !== passcode) {
+				return done(null, false, { message: 'Wrong passcode' });
+			}
+
 			return done(null, user);
 		} catch (e) {
 			done(e)
 		}
 	}
 ));
+
+export function requireAuth(ctx: any,  next: Function) {
+	if (ctx.isAuthenticated()) {
+		return next();
+	}
+
+	ctx.status = 401;
+	ctx.body = {message: 'Not authorized'};
+}
 
 export default passport;

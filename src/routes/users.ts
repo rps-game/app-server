@@ -1,5 +1,6 @@
 import Router from 'koa-router';
 import User, {IUser} from '../models/user';
+import passport, {requireAuth} from "../auth/passport";
 
 const userRouter = new Router({
 	prefix: '/api/v1'
@@ -8,15 +9,10 @@ const userRouter = new Router({
 // Routes
 userRouter.get('/users', async (ctx) => {
 	try {
-		if (ctx.isUnauthenticated()) {
-			ctx.status = 401;
-			throw {message: 'Not authorized'};
-		}
-
 		const search = ctx.request.query.search;
 
 		if (!search) {
-			ctx.body = await User.find({id: {$ne: ctx.state.user.id}}).sort({rating: -1}).limit(10);
+			ctx.body = await User.find({id: {$ne: ctx.state.user?.id}}).sort({rating: -1}).limit(10);
 			return;
 		}
 
@@ -29,18 +25,19 @@ userRouter.get('/users', async (ctx) => {
 					{name: {$regex: new RegExp(search, 'i')}}
 				],
 				id: {
-					$ne: ctx.state.user.id
+					$ne: ctx.state.user?.id
 				}
 			}
 		}
 
 		ctx.body = await User.find(query).limit(10);
 	} catch (e) {
+		console.error(e);
 		ctx.body = e
 	}
 });
 
-userRouter.get('/users/:id', async (ctx) => {
+userRouter.get('/users/:id', requireAuth, async (ctx) => {
 	const id = ctx.params.id;
 
 	let user;
@@ -60,7 +57,7 @@ userRouter.get('/users/:id', async (ctx) => {
 	ctx.body = user;
 });
 
-userRouter.put('/users/:id', async (ctx) => {
+userRouter.put('/users/:id', requireAuth, async (ctx) => {
 	try {
 		const id = ctx.params.id
 		let user;
