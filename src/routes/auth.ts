@@ -35,8 +35,8 @@ authRouter.post('/sign-up', async (ctx) => {
 			chatId,
 		});
 
-		await user.save();
 		sendCode(user);
+		await user.save();
 
 		ctx.body = user;
 		ctx.status = 201;
