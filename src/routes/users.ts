@@ -10,9 +10,11 @@ const userRouter = new Router({
 userRouter.get('/users', async (ctx) => {
 	try {
 		const search = ctx.request.query.search;
+		let limit = Number(ctx.request.query.limit)
+		limit = isNaN(limit) ? 5 : limit;
 
 		if (!search) {
-			ctx.body = await User.find({id: {$ne: ctx.state.user?.id}}).sort({rating: -1}).limit(10);
+			ctx.body = await User.find({id: {$ne: ctx.state.user?.id}}).sort({rating: -1}).limit(limit);
 			return;
 		}
 
