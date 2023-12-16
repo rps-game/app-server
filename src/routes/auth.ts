@@ -81,4 +81,8 @@ authRouter.post('/code', passport.authenticate('local'), async (ctx) => {
 	ctx.status = 204;
 });
 
+authRouter.get('/me', requireAuth, async (ctx) => {
+	ctx.body = ctx.state.user;
+});
+
 export default authRouter;
