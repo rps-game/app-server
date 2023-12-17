@@ -10,29 +10,26 @@ const userRouter = new Router({
 userRouter.get('/users', async (ctx) => {
 	try {
 		const search = ctx.request.query.search;
+		const excludeMe = ctx.request.query.excludeMe;
+		const query: Record<string, any> = {};
 		let limit = Number(ctx.request.query.limit)
 		limit = isNaN(limit) ? 5 : limit;
 
-		if (!search) {
-			ctx.body = await User.find({id: {$ne: ctx.state.user?.id}}).sort({rating: -1}).limit(limit);
+		if (excludeMe === 'true') {
+			query.id = {$ne: ctx.state.user?.id};
+		}
+
+		if (typeof search == 'string') {
+			query.$or = [
+				{id: {$regex: new RegExp(search, 'i')}},
+				{name: {$regex: new RegExp(search, 'i')}}
+			];
+		} else {
+			ctx.body = await User.find(query).sort({rating: -1}).limit(limit);
 			return;
 		}
 
-		let query = {};
-
-		if (typeof search == 'string') {
-			query = {
-				$or: [
-					{id: {$regex: new RegExp(search, 'i')}},
-					{name: {$regex: new RegExp(search, 'i')}}
-				],
-				id: {
-					$ne: ctx.state.user?.id
-				}
-			}
-		}
-
-		ctx.body = await User.find(query).limit(10);
+		ctx.body = await User.find(query).limit(limit);
 	} catch (e) {
 		console.error(e);
 		ctx.body = e
