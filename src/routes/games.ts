@@ -3,7 +3,7 @@ import {ObjectId} from "mongoose";
 import Game, {IGame, IPlayer} from "../models/game";
 import Router from 'koa-router';
 import {createRPSLSGame, Player} from "../rps-game/game";
-import {ratingSystem, Results} from "../rps-game/helpers";
+import {ratingSystem, Results, RockPaperScissorsLizardSpock} from "../rps-game/helpers";
 import config from "../config";
 import passport, {requireAuth} from "../auth/passport";
 
@@ -68,6 +68,82 @@ gamesRouter.post('/games', requireAuth, async (ctx) => {
 	}
 });
 
+gamesRouter.get('/games/stats', async (ctx) => {
+	const winCount = await Game.find({ 'result.value': Results.WIN }).countDocuments();
+	const tieCount = await Game.find({ 'result.value': {$in: [Results.TIE, Results.STALEMATE]} }).countDocuments();
+
+	const signs = await Game.aggregate<{
+		_id: RockPaperScissorsLizardSpock,
+		count: number,
+		countWin: number,
+		winRate: number
+	}>([
+		{
+			$match: {result: {$exists: true}}
+		},
+		{
+			$project: {
+				'members.choice': 1,
+				result: 1,
+			}
+		},
+		{
+			$unwind: {
+				path: '$members'
+			},
+		},
+		{
+			$group: {
+				_id: '$members.choice',
+				count: {$sum: 1},
+				countWin: {
+					$sum: {
+						$cond: {
+							if: {
+								$and: [
+									{
+										$eq: ['$members.choice', '$result.choice'],
+									},
+									{
+										$eq: ['$result.value', 'win']
+									}
+								]
+							},
+							then: 1,
+							else: 0
+						}
+					}
+				}
+			}
+		},
+		{
+			$addFields: {
+				winRate: {
+					$round: [
+						{
+							$multiply: [
+								{
+									$divide: [
+										'$countWin',
+										'$count'
+									]
+								},
+								100
+							]
+						}
+					]
+				}
+			}
+		}
+	]);
+
+	ctx.body = {
+		winCount,
+		tieCount,
+		signs
+	}
+})
+
 gamesRouter.get('/games/pending', requireAuth, async (ctx) => {
 	try {
 		const id = ctx.state.user.id;
@@ -128,7 +204,6 @@ gamesRouter.put('/games/:id', requireAuth, async (ctx) => {
 			.findOneAndUpdate({
 				id: ctx.params.id,
 				'members.id': id,
-				// result: {$exists: false}
 			}, {
 				$set: {
 					'members.$.choice': choice,
